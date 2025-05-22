@@ -4,35 +4,46 @@ if (userLogin()['level'] != 1) {
     exit();
 }
 
-function insert($data)
+function generateId()
 {
     global $koneksi;
 
-    $username = strtolower(mysqli_real_escape_string($koneksi, $data['username']));
-    $fullname = mysqli_real_escape_string($koneksi, $data['fullname']);
-    $password = mysqli_real_escape_string($koneksi, $data['password']);
-    $password2 = mysqli_real_escape_string($koneksi, $data['password2']);
-    $level = mysqli_real_escape_string($koneksi, $data['level']);
-    $address = mysqli_real_escape_string($koneksi, $data['address']);
+    $queryId = mysqli_query($koneksi, "SELECT max(id_barang) as maxid FROM tbl_barang");
+    $data = mysqli_fetch_array($queryId);
+
+    $maxid = $data['maxid'] ?? 'BRG-000'; // Default value if null
+    
+    $noUrut = (int) substr($maxid, 4, 3); // Extract the numeric part safely
+    $noUrut++;
+    $maxid = "BRG-" . sprintf("%03s", $noUrut); // Format the new ID
+
+    return $maxid;
+}
+
+function insert($data)
+{
+
+    global $koneksi;
+
+    $id = mysqli_real_escape_string($koneksi, $data['kode']);
+    $barcode = mysqli_real_escape_string($koneksi, $data['barcode']);
+    $name = mysqli_real_escape_string($koneksi, $data['nama_barang']);
+    $satuan = mysqli_real_escape_string($koneksi, $data['satuan']);
+    $harga_beli = mysqli_real_escape_string($koneksi, $data['harga_beli']);
+    $harga_jual = mysqli_real_escape_string($koneksi, $data['harga_jual']);
+    $stockmin = mysqli_real_escape_string($koneksi, $data['stock_minimal']);
     $gambar = mysqli_real_escape_string($koneksi, $_FILES['image']['name']);
 
-    if ($password !== $password2) {
-        echo "<script>alert('Konfirmasi password tidak sesuai')</script>";
-        return false;
-    }
-
-    $pass = password_hash($password, PASSWORD_DEFAULT);
-
-    $cekUsername = mysqli_query($koneksi, "SELECT username FROM tbl_user WHERE username = '$username'");
-    if (mysqli_num_rows($cekUsername) > 0) {
-        echo "<script>alert('Username sudah terpakai')</script>";
+    $cekBarcode = mysqli_query($koneksi, "SELECT * FROM tbl_barang WHERE barcode = '$barcode'");
+    if (mysqli_num_rows($cekBarcode)) {
+        echo "<script>alert('Kode barcode sudah ada, barang gagal ditambahkan')</script>";
         return false;
     }
 
     if ($gambar != null) {
-        $gambar = uploadimg();
+        $gambar = uploadimg(null, $id);
     } else {
-        $gambar = 'default.jpg';
+        $gambar = 'default-brg.png';
     }
 
     //gambar tidak sesuai validasi
@@ -40,19 +51,19 @@ function insert($data)
         return false;
     }
 
-    $sqlUser = "INSERT INTO tbl_user VALUE (null, '$username', '$fullname', '$pass', '$address', '$level', '$gambar')";
-    mysqli_query($koneksi, $sqlUser);
+    $sqlBarang = "INSERT INTO tbl_barang VALUE ('$id', '$barcode', '$name', '$harga_beli', '$harga_jual', 0, '$satuan', '$stockmin', '$gambar')";
+    mysqli_query($koneksi, $sqlBarang);
     return mysqli_affected_rows($koneksi);
 }
 
-function delete($id, $foto)
+function delete($id, $gbr)
 {
     global $koneksi;
 
-    $sqlData = "DELETE FROM tbl_user WHERE userid = $id";
-    mysqli_query($koneksi, $sqlData);
-    if ($foto != 'default.png') {
-        unlink('../assets/image/' . $foto);sss
+    $sqlDel = "DELETE FROM tbl_barang WHERE id_barang = '$id'";
+    mysqli_query($koneksi, $sqlDel);
+    if ($gbr != 'default-brg.png') {
+        unlink('../assets/image/' . $gbr);
     }
     return mysqli_affected_rows($koneksi);
 }
