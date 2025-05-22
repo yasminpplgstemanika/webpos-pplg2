@@ -52,7 +52,7 @@ function delete($id, $foto)
     $sqlData = "DELETE FROM tbl_user WHERE userid = $id";
     mysqli_query($koneksi, $sqlData);
     if ($foto != 'default.png') {
-        unlink('../assets/image/' . $foto);sss
+        unlink('../assets/image/' . $foto);
     }
     return mysqli_affected_rows($koneksi);
 }
